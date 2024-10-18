@@ -1,0 +1,65 @@
+
+name: Build and Deploy Docs
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  generate-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: |
+          # Pin versions to avoid unexpected changes
+          pip install mkdocs-material==8.3.0 mkdocs-pdf-export-plugin==0.5.0 mkdocs-mermaid2-plugin==0.5.2 mkdocs-plantuml-markdown==1.3.0
+
+      - name: Generate Structurizr Diagrams
+        run: |
+          # This is a placeholder to generate images from Structurizr DSL
+          # Assume dsl files are in structurizr directory
+          mkdir -p docs/diagrams
+          for dsl in structurizr/*.dsl; do
+            # Replace with the actual Structurizr CLI command
+            echo "Generating diagram for $dsl"
+            structurizr-cli export -w $dsl -f docs/diagrams
+          done
+
+      - name: Build Documentation
+        run: mkdocs build
+
+      - name: Generate PDF Documentation
+        run: |
+          mkdocs pdf-export
+          mv site/pdf/Structurizr_Documentation.pdf Structurizr_Documentation.pdf
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+
+      - name: Upload PDF as Release Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Structurizr_Documentation_PDF
+          path: Structurizr_Documentation.pdf
+
+      - name: Create Release with PDF
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: Structurizr_Documentation.pdf
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
