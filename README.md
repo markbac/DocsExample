@@ -1,4 +1,3 @@
-
 # Structurizr MkDocs Framework
 
 This repository provides a framework for generating documentation using Structurizr DSL diagrams, MkDocs, and GitHub Actions for CI/CD. The framework supports publishing to GitHub Pages, generating a PDF version of the documentation, and integrating arc42 architectural documentation.
@@ -15,10 +14,15 @@ structurizr_mkdocs_framework/
 │   ├── 02_requirements.md   # Requirements for arc42 documentation
 │   └── ...                  # Additional arc42 documentation files
 ├── docs/
+│   ├── adr/                 # Directory containing Architecture Decision Records (ADRs)
+│   │   ├── 001_use_relational_database.md # ADR for using a relational database
+│   │   └── 002_use_java_backend.md        # ADR for using Java for backend development
 │   ├── diagrams/            # Directory where Structurizr generated diagrams will be saved
-│   └── index.md             # Main page of the documentation
+│   ├── index.md             # Main page of the documentation
+│   └── architecture_decisions.md # Overview of ADRs for the project
+├── structurizr/
+│   └── workspace.dsl        # Example Structurizr DSL workspace file
 ├── mkdocs.yml               # Configuration for MkDocs
-├── workspace.dsl            # Example Structurizr DSL workspace file
 └── .gitignore               # Git ignore file to ignore certain files and directories
 ```
 
@@ -58,9 +62,13 @@ The GitHub Actions workflow automates the following tasks when changes are pushe
 - **Plugins**: Includes plugins for Mermaid, PlantUML, and PDF export.
 - **arc42 Navigation**: Provides navigation for arc42 architectural documentation.
 
-### Structurizr Diagram Generation (`workspace.dsl`)
+### Structurizr Diagram Generation (`structurizr/workspace.dsl`)
 
 The `workspace.dsl` file contains an example of how to define a workspace in Structurizr DSL. The diagrams generated from this file are stored in the `docs/diagrams/` directory and are embedded within the MkDocs documentation.
+
+### Architecture Decision Records (ADRs) (`docs/adr`)
+
+The ADRs are stored in the `docs/adr/` directory. These markdown files provide context, decision rationale, and consequences for major architectural decisions made during the project.
 
 ## How to Use This Repository
 
