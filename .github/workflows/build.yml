@@ -22,7 +22,7 @@ jobs:
       - name: Install Dependencies
         run: |
           # Pin versions to avoid unexpected changes
-          pip install mkdocs-material mkdocs-pdf-export-plugin mkdocs-mermaid2-plugin mkdocs-plantuml-markdown-plugin
+          pip install mkdocs-material mkdocs-pdf-export-plugin mkdocs-mermaid2-plugin mkdocs-build-plantuml-plugin
 
       - name: Generate Structurizr Diagrams
         run: |
