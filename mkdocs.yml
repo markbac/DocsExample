@@ -5,11 +5,12 @@ theme:
 plugins:
   - search
   - mermaid2
-  - plantuml_markdown
-  - pdf-export
+#  - pdf-export
+  - macros
+ # - plantuml_markdown
 
-extra_css:
-  - stylesheets/extra.css
+#extra_css:
+#  - stylesheets/extra.css
 
 markdown_extensions:
   - admonition
@@ -17,13 +18,66 @@ markdown_extensions:
   - pymdownx.superfences
 
 # Add configurations for PDF generation including TOC and index
-extra:
-  pdf_export:
-    toc: true
-    index: true
+#extra:
+#  pdf_export:
+#    toc: true
+#    index: true
 
 # Add support for arc42 documentation structure
 
-nav: !include nav.yml
+nav:
+nav:
+  - Home: index.md
+  - About arc42: About_arc42.md
+  - Introduction and Goals:
+      - Overview: 1_Introduction_and_Goals/index.md
+      - Details: 1_Introduction_and_Goals/Introduction_and_Goals.md
+  - 2 Architecture Constraints:
+      - Overview: 2_Architecture_Constraints/index.md
+      - Details: 2_Architecture_Constraints/Architecture_Constraints.md
+  - 3 Context and Scope:
+      - Overview: 3_Context_and_Scope/index.md
+      - Details: 3_Context_and_Scope/Context_and_Scope.md
+  - 4 Solution Strategy:
+      - Overview: 4_Solution_Strategy/index.md
+      - Details: 4_Solution_Strategy/Solution_Strategy.md
+  - 5 Building Block View:
+      - Overview: 5_Building_Block_View/index.md
+      - Details: 5_Building_Block_View/Building_Block_View.md
+  - 6 Runtime View:
+      - Overview: 6_Runtime_View/index.md
+      - Details: 6_Runtime_View/Runtime_View.md
+  - 7 Deployment View:
+      - Overview: 7_Deployment_View/index.md
+      - Details: 7_Deployment_View/Deployment_View.md
+  - 8 Cross-cutting Concepts:
+      - Overview: 8_Cross-cutting_Concepts/index.md
+      - Details: 8_Cross-cutting_Concepts/Cross-cutting_Concepts.md
+  - 9 Architecture Decisions:
+      - Overview: 9_Architecture_Decisions/index.md
+      - Details: 9_Architecture_Decisions/Architecture_Decisions.md
+  - 10 Quality Requirements:
+      - Overview: 10_Quality_Requirements/index.md
+      - Details: 10_Quality_Requirements/Quality_Requirements.md
+  - 11 Risks and Technical Debts:
+      - Overview: 11_Risks_and_Technical_Debts/index.md
+      - Details: 11_Risks_and_Technical_Debts/Risks_and_Technical_Debts.md
+  - 12 Glossary:
+      - Overview: 12_Glossary/index.md
+      - Details: 12_Glossary/Glossary.md
+  - Architecture Decisions: architecture_decisions.md
+  - Diagrams:
+      - Overview: diagrams_overview.md
+      - Examples:
+          - Record Architecture Decisions: diagrams/Examples/0001-record-architecture-decisions.md
+          - Graphviz: diagrams/Examples/graphviz.md
+          - Mermaid: diagrams/Examples/mermaid.md
+          - NWDiag: diagrams/Examples/nwdiag.md
+          - PlantUML Full: diagrams/Examples/plantuml_full.md
+          - Vega: diagrams/Examples/vega.md
+          - WaveDrom: diagrams/Examples/wavedrom.md
+
+
+
 
     

@@ -90,21 +90,8 @@ def validate_output_dir(output_dir):
     if output_path.name == "docs":
         raise ValueError("Output directory cannot be named 'docs' directly. Please use a different name.")
 
-# Generate nwdiag using Kroki service
-def generate_nwdiag_with_kroki(code, output_file):
-    kroki_url = "https://kroki.io/nwdiag/png"
-    try:
-        response = requests.post(kroki_url, data=code, headers={"Content-Type": "text/plain"}, timeout=30)
-        response.raise_for_status()
-        with open(output_file, "wb") as f:
-            f.write(response.content)
-        logging.info(f"Generated nwdiag diagram using Kroki: {output_file}")
-    except requests.RequestException as e:
-        logging.error(f"Error generating nwdiag diagram via Kroki: {e}")
-        raise
-
 # Process Markdown files
-def process_markdown_file(input_file, output_file, output_dir, metadata):
+def process_markdown_file(input_file, output_file, output_dir, metadata, keep_temp_files):
     logging.info(f"Processing markdown file: {input_file}")
 
     with open(input_file, "r", encoding="utf-8") as f:
@@ -121,38 +108,39 @@ def process_markdown_file(input_file, output_file, output_dir, metadata):
         "mermaid": {
             "pattern": r'```mermaid(.*?)```',
             "command": lambda temp, image: ["mmdc", "-i", str(temp), "-o", str(image)],
-            "extension": "png"
+            "extension": "png",
+            "shell": False
         },
         "plantuml": {
             "pattern": r'```plantuml(.*?)```',
-            "command": lambda temp, image: ["plantuml", "-tpng", str(temp)],
-            "extension": "png"
+            "command": lambda temp, image: ["plantuml", "-tpng", str(temp), "-o", "."],
+            "extension": "png",
+            "shell": False
         },
         "vega": {
             "pattern": r'```vega(.*?)```',
-            "command": lambda temp, image: ["vg2png", str(temp), "-o", str(image)],
-            "extension": "png"
+            "command": lambda temp, image: f"vg2png {temp} {image}",
+            "extension": "png",
+            "shell": True
         },
         "bytefield": {
             "pattern": r'```bytefield(.*?)```',
             "command": lambda temp, image: ["bytefield-svg", "-i", str(temp), "-o", str(image)],
-            "extension": "svg"
+            "extension": "svg",
+            "shell": False
         },
         "wavedrom": {
             "pattern": r'```wavedrom(.*?)```',
             "command": lambda temp, image: ["wavedrom-cli", "-i", str(temp), "-p", str(image)],
-            "extension": "png"
+            "extension": "png",
+            "shell": False
         },
         "graphviz": {
             "pattern": r'```dot(.*?)```',
             "command": lambda temp, image: ["dot", "-Tpng", "-o", str(image), str(temp)],
-            "extension": "png"
-        },
-        "nwdiag": {
-            "pattern": r'```nwdiag(.*?)```',
-            "generate_with_kroki": True,
-            "extension": "png"
-        },
+            "extension": "png",
+            "shell": False
+        }
     }
 
     for diag_type, settings in diagram_patterns.items():
@@ -163,35 +151,45 @@ def process_markdown_file(input_file, output_file, output_dir, metadata):
             # Ensure the parent directory exists
             diagram_subdir.mkdir(parents=True, exist_ok=True)
 
-            if diag_type == "nwdiag" and settings.get("generate_with_kroki", False):
-                generate_nwdiag_with_kroki(code, image_file)
-            else:
-                temp_file = output_dir / f"{base_filename}_{diagram_index}.tmp"
-                with open(temp_file, "w") as f:
-                    f.write(code)
+            command = None
+            temp_file = diagram_subdir / f"{base_filename}_{diagram_index}.tmp"
+            with open(temp_file, "w") as f:
+                f.write(code)
 
-                try:
-                    subprocess.run(
-                        settings["command"](temp_file, image_file),
-                        check=True,
-                        timeout=60
-                    )
-                    logging.info(f"Generated {diag_type} diagram: {image_file}")
-                except subprocess.CalledProcessError as e:
-                    logging.error(f"Error generating {diag_type} diagram: {e}")
-                    raise
-                finally:
-                    os.remove(temp_file)
+            try:
+                command = settings["command"](temp_file, image_file)
 
+                subprocess.run(
+                    command,
+                    check=True,
+                    timeout=90,
+                    shell=settings["shell"]  # Use shell setting from diagram_patterns
+                )
+
+                logging.info(f"Generated {diag_type} diagram: {image_file}")
+            except subprocess.CalledProcessError as e:
+                logging.error(f"Error generating {diag_type} diagram: {e}")
+                raise
+            finally:
+                if not keep_temp_files:
+                    try:
+                        temp_file.unlink()
+                        logging.info(f"Deleted temporary file: {temp_file}")
+                    except FileNotFoundError:
+                        logging.warning(f"Temporary file not found for deletion: {temp_file}")
+            
             output_content = output_content.replace(match.group(0), f"![{diag_type} diagram]({image_file.name})")
             diagram_index += 1
 
-            metadata.append({
+            metadata_entry = {
                 "file": str(input_file),
                 "type": diag_type,
                 "image": str(image_file),
                 "code_snippet": code[:50]
-            })
+            }
+            if command:
+                metadata_entry["command"] = " ".join(command) if isinstance(command, list) else command
+            metadata.append(metadata_entry)
 
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(output_content)
@@ -199,7 +197,7 @@ def process_markdown_file(input_file, output_file, output_dir, metadata):
     logging.info(f"Saved processed markdown file: {output_file}")
 
 # Process directories
-def process_directory(input_dir, output_dir):
+def process_directory(input_dir, output_dir, keep_temp_files):
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -209,7 +207,7 @@ def process_directory(input_dir, output_dir):
     for file_path in input_dir.rglob("*.md"):
         output_file_path = output_dir / file_path.relative_to(input_dir)
         output_file_path.parent.mkdir(parents=True, exist_ok=True)
-        process_markdown_file(file_path, output_file_path, output_dir, metadata)
+        process_markdown_file(file_path, output_file_path, output_dir, metadata, keep_temp_files)
 
     metadata_file = output_dir / "diagram_metadata.json"
     with open(metadata_file, "w", encoding="utf-8") as f:
@@ -223,6 +221,7 @@ def main():
     parser.add_argument("-o", "--output_dir", required=True, help="Output directory for processed Markdown files and images.")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging.")
     parser.add_argument("--log_file", help="Optional log file to save logs.")
+    parser.add_argument("--keep_temp_files", action="store_true", help="Retain temporary files after processing.")
 
     args = parser.parse_args()
     setup_logging(args.debug, args.log_file)
@@ -239,7 +238,7 @@ def main():
         return
 
     try:
-        process_directory(args.input_dir, args.output_dir)
+        process_directory(args.input_dir, args.output_dir, args.keep_temp_files)
     except Exception as e:
         logging.error(f"Error: {e}")
     else:

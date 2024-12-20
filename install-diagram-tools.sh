@@ -29,7 +29,7 @@ debug() {
     esac
 }
 
-pip install yaml
+pip install pyyaml
 
 # Function to activate the virtual environment
 debug "Creating script to activate virtual environment..." "INFO"
@@ -126,12 +126,9 @@ fi
 
 debug "Installing MkDocs and plugins..." "INFO"
 # Install MkDocs and plugins/extensions
-if ! pip show mkdocs &> /dev/null; then
-    debug "Installing MkDocs and common plugins..." "INFO"
-    pip install mkdocs  mkdocs-mermaid2  mkdocs-literate-nav mkdocs-include mkdocs-material mkdocs-macros-plugin mkdocs-pdf-export-plugin mkdocs-include-markdown-plugin plantuml-markdown mkdocs-video || debug "Failed to install MkDocs or plugins." "ERROR"
-else
-    debug "MkDocs and plugins are already installed." "INFO"
-fi
+debug "Installing MkDocs and common plugins..." "INFO"
+pip install mkdocs   plantuml-markdown  mkdocs-mermaid2-plugin  mkdocs-literate-nav mkdocs-include mkdocs-material mkdocs-macros-plugin mkdocs-pdf-export-plugin mkdocs-include-markdown-plugin mkdocs-build-plantuml-plugin   plantuml-markdown mkdocs-video || debug "Failed to install MkDocs or plugins." "ERROR"
+
 
 echo
 debug "Verifying installations..." "INFO"
