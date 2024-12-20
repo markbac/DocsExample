@@ -23,15 +23,7 @@ extra:
     index: true
 
 # Add support for arc42 documentation structure
-nav:
-  - Home: index.md
-  - arc42:
-      - Introduction: arc42/01_introduction.md
-      - Requirements: arc42/02_requirements.md
-      - Solution Strategy: arc42/03_solution_strategy.md
-      - Building Block View: arc42/04_building_block_view.md
-      - Runtime View: arc42/05_runtime_view.md
-      - Deployment View: arc42/06_deployment_view.md
-      - Crosscutting Concepts: arc42/07_crosscutting_concepts.md
-      - Architecture Decisions: arc42/08_architecture_decisions.md
+
+nav: !include nav.yml
+
     

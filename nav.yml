@@ -1,0 +1,29 @@
+
+- 1 Introduction and Goals:
+  - Introduction and Goals: 1_Introduction_and_Goals/Introduction_and_Goals.md
+- 2 Architecture Constraints:
+  - Architecture Constraints: 2_Architecture_Constraints/Architecture_Constraints.md
+- 3 Context and Scope:
+  - Context and Scope: 3_Context_and_Scope/Context_and_Scope.md
+- 4 Solution Strategy:
+  - Solution Strategy: 4_Solution_Strategy/Solution_Strategy.md
+- 5 Building Block View:
+  - Building Block View: 5_Building_Block_View/Building_Block_View.md
+- 6 Runtime View:
+  - Runtime View: 6_Runtime_View/Runtime_View.md
+- 7 Deployment View:
+  - Deployment View: 7_Deployment_View/Deployment_View.md
+- 8 Cross-cutting Concepts:
+  - Cross-cutting Concepts: 8_Cross-cutting_Concepts/Cross-cutting_Concepts.md
+- 9 Architecture Decisions:
+  - Architecture Decisions: 9_Architecture_Decisions/Architecture_Decisions.md
+- 10 Quality Requirements:
+  - Quality Requirements: 10_Quality_Requirements/Quality_Requirements.md
+- 11 Risks and Technical Debts:
+  - Risks and Technical Debts: 11_Risks_and_Technical_Debts/Risks_and_Technical_Debts.md
+- 12 Glossary:
+  - Glossary: 12_Glossary/Glossary.md
+- About arc42: About_arc42.md
+- architecture decisions: architecture_decisions.md
+- diagrams overview: diagrams_overview.md
+- index: index.md

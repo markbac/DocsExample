@@ -29,6 +29,8 @@ debug() {
     esac
 }
 
+pip install yaml
+
 # Function to activate the virtual environment
 debug "Creating script to activate virtual environment..." "INFO"
 cat <<EOL > activate_venv.sh
@@ -126,7 +128,7 @@ debug "Installing MkDocs and plugins..." "INFO"
 # Install MkDocs and plugins/extensions
 if ! pip show mkdocs &> /dev/null; then
     debug "Installing MkDocs and common plugins..." "INFO"
-    pip install mkdocs  mkdocs-mermaid2 mkdocs-material mkdocs-macros-plugin mkdocs-pdf-export-plugin mkdocs-include-markdown-plugin plantuml-markdown mkdocs-video || debug "Failed to install MkDocs or plugins." "ERROR"
+    pip install mkdocs  mkdocs-mermaid2  mkdocs-literate-nav mkdocs-include mkdocs-material mkdocs-macros-plugin mkdocs-pdf-export-plugin mkdocs-include-markdown-plugin plantuml-markdown mkdocs-video || debug "Failed to install MkDocs or plugins." "ERROR"
 else
     debug "MkDocs and plugins are already installed." "INFO"
 fi
@@ -145,7 +147,7 @@ echo "$java_formatted_output" | while IFS= read -r line; do
 done
 debug "PlantUML version: $(plantuml -version)" "INFO"
 debug "MkDocs version: $(mkdocs --version)" "INFO"
-debug "Vega CLI version: $(vg2pdf --version)" "INFO"
+debug "Vega CLI version: $(vg2png --version)" "INFO"
 debug "Wavedrom CLI version: $(wavedrom-cli --version)" "INFO"
 debug "Mermaid CLI version: $(mmdc --version)" "INFO"
 bytefield_version=$(npm list -g bytefield-svg --depth=0 2>/dev/null | grep "bytefield-svg@" | awk -F@ '{print $2}')

@@ -30,20 +30,49 @@ Note: The script will process all markdown files in the input directory recursiv
 generate images for the supported diagram code blocks, and save them in the output directory.
 The markdown files will be updated to reference the generated images.
 """
-
 import os
 import re
 import shutil
 import subprocess
 import logging
 import json
+import requests
 from pathlib import Path
 import argparse
 
+# Custom log formatter for coloured log levels
+class ColouredFormatter(logging.Formatter):
+    COLOURS = {
+        'DEBUG': '\033[0;34m',    # Blue
+        'INFO': '\033[0;32m',     # Green
+        'WARNING': '\033[0;33m',  # Yellow
+        'ERROR': '\033[0;31m',    # Red
+        'RESET': '\033[0m'        # Reset
+    }
+
+    def format(self, record):
+        level_colour = self.COLOURS.get(record.levelname, self.COLOURS['RESET'])
+        time_colour = self.COLOURS['DEBUG']  # Time always blue
+        reset_colour = self.COLOURS['RESET']
+        record.levelname = f"{level_colour}{record.levelname}{reset_colour}"
+        record.asctime = f"{time_colour}{self.formatTime(record)}{reset_colour}"
+        return super().format(record)
+
 # Set up logging
-def setup_logging(debug):
+def setup_logging(debug, log_file=None):
     log_level = logging.DEBUG if debug else logging.INFO
-    logging.basicConfig(level=log_level, format="%(asctime)s - %(levelname)s - %(message)s")
+    handlers = []
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(ColouredFormatter("%(asctime)s - %(levelname)s - %(message)s"))
+    handlers.append(console_handler)
+
+    if log_file:
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        handlers.append(file_handler)
+
+    logging.basicConfig(level=log_level, handlers=handlers)
 
 # Check tool availability
 def check_tools(tools):
@@ -55,39 +84,23 @@ def check_tools(tools):
         logging.error(f"Missing required tools: {', '.join(missing_tools)}")
         raise RuntimeError(f"Install the missing tools: {', '.join(missing_tools)}")
 
-# Diagram generation functions
-def generate_diagram(command, code, input_file, output_dir, base_filename, diagram_index, extension):
-    """Generate an image from a diagram code block"""
-    image_file = output_dir / f"{base_filename}_{diagram_index}.{extension}"
-    temp_file = output_dir / f"{base_filename}_{diagram_index}.tmp"
+# Validate output directory
+def validate_output_dir(output_dir):
+    output_path = Path(output_dir)
+    if output_path.name == "docs":
+        raise ValueError("Output directory cannot be named 'docs' directly. Please use a different name.")
 
-    with open(temp_file, "w") as f:
-        f.write(code)
-
+# Generate nwdiag using Kroki service
+def generate_nwdiag_with_kroki(code, output_file):
+    kroki_url = "https://kroki.io/nwdiag/png"
     try:
-        subprocess.run(command + [str(temp_file), str(image_file)], check=True)
-        logging.info(f"Generated image: {image_file}")
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Error generating image: {e}")
-        raise
-    finally:
-        os.remove(temp_file)
-
-    return image_file
-
-def copy_image_file(src_image_path, output_dir):
-    """Copy an image from the source to the output directory."""
-    try:
-        image_rel_path = Path(src_image_path)
-        dest_image_path = output_dir / image_rel_path.name
-
-        # Copy the image to the output directory
-        shutil.copy(src_image_path, dest_image_path)
-        logging.info(f"Copied image {src_image_path} to {dest_image_path}")
-        
-        return dest_image_path
-    except Exception as e:
-        logging.error(f"Error copying image {src_image_path}: {e}")
+        response = requests.post(kroki_url, data=code, headers={"Content-Type": "text/plain"}, timeout=30)
+        response.raise_for_status()
+        with open(output_file, "wb") as f:
+            f.write(response.content)
+        logging.info(f"Generated nwdiag diagram using Kroki: {output_file}")
+    except requests.RequestException as e:
+        logging.error(f"Error generating nwdiag diagram via Kroki: {e}")
         raise
 
 # Process Markdown files
@@ -99,47 +112,45 @@ def process_markdown_file(input_file, output_file, output_dir, metadata):
 
     output_content = content
     base_filename = input_file.stem
+    relative_path = input_file.relative_to("docs-src").parent
+    diagram_subdir = output_dir / relative_path
+
     diagram_index = 0
 
     diagram_patterns = {
         "mermaid": {
             "pattern": r'```mermaid(.*?)```',
-            "command": ["mmdc", "-i"],
+            "command": lambda temp, image: ["mmdc", "-i", str(temp), "-o", str(image)],
             "extension": "png"
         },
         "plantuml": {
             "pattern": r'```plantuml(.*?)```',
-            "command": ["plantuml", "-tpng"],
+            "command": lambda temp, image: ["plantuml", "-tpng", str(temp)],
             "extension": "png"
         },
         "vega": {
             "pattern": r'```vega(.*?)```',
-            "command": ["vg2png"],
+            "command": lambda temp, image: ["vg2png", str(temp), "-o", str(image)],
             "extension": "png"
         },
         "bytefield": {
             "pattern": r'```bytefield(.*?)```',
-            "command": ["bytefield-svg"],
+            "command": lambda temp, image: ["bytefield-svg", "-i", str(temp), "-o", str(image)],
             "extension": "svg"
         },
         "wavedrom": {
             "pattern": r'```wavedrom(.*?)```',
-            "command": ["wavedrom-cli", "-i"],
-            "extension": "png"
-        },
-        "nwdiag": {
-            "pattern": r'```nwdiag(.*?)```',
-            "command": ["nwdiag"],
-            "extension": "png"
-        },
-        "packetdiag": {
-            "pattern": r'```packetdiag(.*?)```',
-            "command": ["packetdiag"],
+            "command": lambda temp, image: ["wavedrom-cli", "-i", str(temp), "-p", str(image)],
             "extension": "png"
         },
         "graphviz": {
             "pattern": r'```dot(.*?)```',
-            "command": ["dot", "-Tpng"],
+            "command": lambda temp, image: ["dot", "-Tpng", "-o", str(image), str(temp)],
+            "extension": "png"
+        },
+        "nwdiag": {
+            "pattern": r'```nwdiag(.*?)```',
+            "generate_with_kroki": True,
             "extension": "png"
         },
     }
@@ -147,32 +158,40 @@ def process_markdown_file(input_file, output_file, output_dir, metadata):
     for diag_type, settings in diagram_patterns.items():
         for match in re.finditer(settings["pattern"], output_content, re.DOTALL):
             code = match.group(1).strip()
-            image_file = generate_diagram(settings["command"], code, input_file, output_dir, base_filename, diagram_index, settings["extension"])
+            image_file = diagram_subdir / f"{base_filename}_{diagram_index}.{settings['extension']}"
+
+            # Ensure the parent directory exists
+            diagram_subdir.mkdir(parents=True, exist_ok=True)
+
+            if diag_type == "nwdiag" and settings.get("generate_with_kroki", False):
+                generate_nwdiag_with_kroki(code, image_file)
+            else:
+                temp_file = output_dir / f"{base_filename}_{diagram_index}.tmp"
+                with open(temp_file, "w") as f:
+                    f.write(code)
+
+                try:
+                    subprocess.run(
+                        settings["command"](temp_file, image_file),
+                        check=True,
+                        timeout=60
+                    )
+                    logging.info(f"Generated {diag_type} diagram: {image_file}")
+                except subprocess.CalledProcessError as e:
+                    logging.error(f"Error generating {diag_type} diagram: {e}")
+                    raise
+                finally:
+                    os.remove(temp_file)
+
             output_content = output_content.replace(match.group(0), f"![{diag_type} diagram]({image_file.name})")
             diagram_index += 1
 
-            # Update metadata
             metadata.append({
                 "file": str(input_file),
                 "type": diag_type,
                 "image": str(image_file),
-                "code_snippet": code[:50]  # Save first 50 chars of code for reference
+                "code_snippet": code[:50]
             })
-
-    # Find image references in markdown and copy them
-    image_pattern = r'!\[([^\]]*)\]\(([^)]+)\)'  # Matches image syntax ![alt](path)
-    for match in re.finditer(image_pattern, output_content):
-        image_path = match.group(2)
-        logging.debug(f"Found image reference: {image_path}")
-        
-        # Handle relative paths (starting with ./ or ../)
-        if image_path.startswith(('./', '../')) or os.path.isabs(image_path):
-            abs_image_path = Path(input_file.parent) / image_path
-            if abs_image_path.exists():  # Only copy if the image exists
-                dest_image_path = copy_image_file(abs_image_path, output_dir)
-                output_content = output_content.replace(image_path, Path(dest_image_path).name)
-            else:
-                logging.warning(f"Image {image_path} not found in input directory.")
 
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(output_content)
@@ -192,7 +211,6 @@ def process_directory(input_dir, output_dir):
         output_file_path.parent.mkdir(parents=True, exist_ok=True)
         process_markdown_file(file_path, output_file_path, output_dir, metadata)
 
-    # Save metadata
     metadata_file = output_dir / "diagram_metadata.json"
     with open(metadata_file, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=4)
@@ -204,15 +222,21 @@ def main():
     parser.add_argument("-i", "--input_dir", required=True, help="Input directory containing Markdown files.")
     parser.add_argument("-o", "--output_dir", required=True, help="Output directory for processed Markdown files and images.")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging.")
+    parser.add_argument("--log_file", help="Optional log file to save logs.")
 
     args = parser.parse_args()
-    setup_logging(args.debug)
+    setup_logging(args.debug, args.log_file)
 
     logging.info("Starting script...")
 
-    # Verify required tools are installed
-    tools = ["mmdc", "plantuml", "vg2png", "bytefield-svg", "wavedrom-cli", "nwdiag", "packetdiag", "dot"]
+    tools = ["mmdc", "plantuml", "vg2png", "bytefield-svg", "wavedrom-cli", "dot"]
     check_tools(tools)
+
+    try:
+        validate_output_dir(args.output_dir)
+    except ValueError as e:
+        logging.error(e)
+        return
 
     try:
         process_directory(args.input_dir, args.output_dir)

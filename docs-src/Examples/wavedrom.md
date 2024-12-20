@@ -120,7 +120,7 @@ edge:['a~>b glitch',
 
 ### example 4
 
-```wavedrom
+```doesntwork
 (function (bits, ticks) {
   var i, t, gray, state, data = [], arr = [];
   for (i = 0; i < bits; i++) {
@@ -141,7 +141,7 @@ edge:['a~>b glitch',
 ```
 ### IEC 60617 Symbols
 
-```wavedrom
+```doesntwork
 { assign:[
   ["out",
     ["XNOR",

@@ -203,7 +203,7 @@ title Regex example
 ```
 
 ## Nwdiag Diagram
-```nwdiag
+```plantuml
 @startuml
 nwdiag {
   group {
@@ -296,7 +296,7 @@ User ||--o{ Order
 ```
 
 ## Math Diagram
-```plantuml
+```doesntwork
 @startuml
 :<math>int_0^1f(x)dx</math>;
 :<math>x^2+y_1+z_12^34</math>;
